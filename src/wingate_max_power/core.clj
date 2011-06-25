@@ -1,9 +1,15 @@
 (ns wingate-max-power.core
+  (:gen-class)
+  (:use wingate-max-power.ui)
   (:import [java.io FileInputStream])
-  (:import [org.apache.poi.xssf.usermodel XSSFWorkbook]))
+  (:import [org.apache.poi.ss.usermodel WorkbookFactory]))
 
 (defn- process-file [filename]
-  (let [worksheets (iterator-seq (.iterator (XSSFWorkbook. (FileInputStream. filename))))]
-    (println "Processing file" filename ", has" (count worksheets) "worksheets")))
+  (let [workbook (WorkbookFactory/create (FileInputStream. filename))
+        worksheets (for [i (range (.getNumberOfSheets workbook))] (.getSheetAt workbook i))]
+    (doseq [sheet worksheets] (println "Sheet" (.getSheetName sheet)))))
 
-(map process-file *command-line-args*)
+(defn -main [& args]
+  (if (empty? args)
+    (wingate-max-power.ui/show-ui)
+    (map process-file args)))
