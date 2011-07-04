@@ -13,3 +13,5 @@
   (if (empty? args)
     (wingate-max-power.ui/show-ui)
     (map process-file args)))
+
+(-main)
