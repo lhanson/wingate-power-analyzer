@@ -13,12 +13,8 @@
       (. selected-files-model addElement file))))
 
 (defn remove-files-handler [event]
-  (alert "Removing files")
-  (alert (str "Type:" (type selected-files-list)))
-  (alert (str "Removing " (count (selection selected-files-list)) " files"))
-  (doseq [selected (selection selected-files-list {:multi? true})] (alert "DOING")
-    (alert (str "Selected: " selected))
-    ((. selected-files-model removeElement selected))))
+  (doseq [selected (selection selected-files-list {:multi? true})]
+    (. selected-files-model removeElement selected)))
 
 (defn file-chooser-handler [event]
   (choose-file :multi? true :success-fn success-handler))
