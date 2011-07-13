@@ -2,8 +2,7 @@
   (:import [javax.swing DefaultListModel]
            [javax.swing.event ListDataListener])
   (:require [clojure.string :as str]
-            [wingate-max-power.processing :as processing]
-            )
+            [wingate-max-power.processing :as processing])
   (:use seesaw.core
         seesaw.chooser
         seesaw.mig))
@@ -45,7 +44,7 @@
       (. selected-files-model addElement file))))
 
 (defn- file-chooser-handler [event]
-  (choose-file :multi? true :success-fn success-handler))
+  (choose-file :multi? true :success-fn success-handler :filters [["Excel files" ["xls" "xlsx"]]]))
 
 (def main-panel
   (mig-panel
