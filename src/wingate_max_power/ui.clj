@@ -1,25 +1,29 @@
 (ns wingate-max-power.ui
-  (:import [javax.swing DefaultListModel])
-  (:import [javax.swing.event ListDataListener])
-  (:require [clojure.string :as str])
+  (:import [javax.swing DefaultListModel]
+           [javax.swing.event ListDataListener])
+  (:require [clojure.string :as str]
+            [wingate-max-power.processing :as processing]
+            )
   (:use seesaw.core
         seesaw.chooser
         seesaw.mig))
 
-(declare update-button-states!)
+(declare update-calculate-button! remove-files-button selected-files-list)
 
 (def list-listener
   (proxy [ListDataListener] []
-    (intervalAdded   [event] (update-button-states!))
-    (intervalRemoved [event] (update-button-states!))))
+    (intervalAdded   [event] (update-calculate-button!))
+    (intervalRemoved [event] (update-calculate-button!))))
+
 (def selected-files-model 
   (doto (DefaultListModel.) (.addListDataListener list-listener)))
-(def selected-files-list (listbox :model selected-files-model))
-
+(defn- selection-handler [event]
+  (config! remove-files-button :enabled? (selection selected-files-list {:multi? true})))
+(def selected-files-list
+  (listbox :model selected-files-model :listen [:selection selection-handler]))
 (defn- remove-files-handler [event]
   (doseq [selected (selection selected-files-list {:multi? true})]
     (. selected-files-model removeElement selected)))
-
 (def remove-files-button
   (button :text "Remove selected files" :enabled? false :listen [:action remove-files-handler]))
 
@@ -27,8 +31,10 @@
   (let [outfile (choose-file :type :save)]
     (alert (str "Output:" outfile " of type " (type outfile) ", exists: " (. outfile exists)))
     (let [files (map #(. selected-files-model getElementAt %) (range (. selected-files-model size)))]
-      (alert (str "mapped " (count files) " files: " (str/join ", " files))))
-    (alert "DONE!")))
+      (doseq [infile files]
+        (try
+          (processing/process-file! infile outfile)
+          (catch Throwable t (alert (str "Could not process " infile ": " t))))))))
 
 (def calculate-power-button
   (button :text "Calculate Max Power" :enabled? false :listen [:action calculate-handler]))
@@ -56,13 +62,8 @@
              [(text) "wrap, growx"]
              [calculate-power-button "wrap"]]))
 
-(defn- update-button-states! []
-  (alert "Updateing button states")
-  (let [list-populated (> (. selected-files-model getSize) 0)]
-    (config! remove-files-button :enabled? list-populated)
-    (config! calculate-power-button :enabled? list-populated))
-  (alert "DONE updating"))
-
+(defn- update-calculate-button! []
+  (config! calculate-power-button :enabled? (> (. selected-files-model getSize) 0)))
 
 (defn show-ui []
   (native!)
