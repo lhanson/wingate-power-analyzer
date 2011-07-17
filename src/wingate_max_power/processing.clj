@@ -5,7 +5,7 @@
 
 (declare compute-sheet)
 
-(defn process-file! [infile outfile]
+(defn process-file! [infile outfile power-start-pos time-start-pos & [{:keys [worksheet-prefix]}]]
   "Computes the max power from the given infile and writes report rows to outfile"
   (let [input-workbook (WorkbookFactory/create (FileInputStream. infile))
         input-worksheets (for [i (range (.getNumberOfSheets input-workbook))] (.getSheetAt input-workbook i))
@@ -18,11 +18,13 @@
     (.setSheetName output-workbook 0 "Wingate Peak Power")
 
     (let [rownum (if (= 0 (.getLastRowNum sheet)) 0 (+ 2 (.getLastRowNum sheet)))
-          bold-font (doto (.createFont output-workbook)
+          file-header-font (doto (.createFont output-workbook)
                       (.setBoldweight Font/BOLDWEIGHT_BOLD)
                       (.setUnderline Font/U_SINGLE)
                       (.setFontHeightInPoints 14))
-          bold-cellstyle (doto (.createCellStyle output-workbook) (.setFont bold-font))
+          subheader-font (doto (.createFont output-workbook) (.setUnderline Font/U_SINGLE))
+          bold-cellstyle (doto (.createCellStyle output-workbook) (.setFont file-header-font))
+          underline-cellstyle (doto (.createCellStyle output-workbook) (.setFont subheader-font))
           file-header-row (.createRow sheet rownum)
           sub-header-row (.createRow sheet (inc rownum))]
       (.setColumnWidth sheet 0 10000)
@@ -33,18 +35,28 @@
         (.setCellStyle bold-cellstyle)
         (.setCellValue (str infile)))
       ; Subheaders
-      (doto (.createCell sub-header-row 0) (.setCellValue "Sheet"))
-      (doto (.createCell sub-header-row 1) (.setCellValue "Peak 1s power"))
-      (doto (.createCell sub-header-row 2) (.setCellValue "Peak occurs at"))
+      (doto (.createCell sub-header-row 0) (.setCellStyle underline-cellstyle) (.setCellValue "Sheet"))
+      (doto (.createCell sub-header-row 1) (.setCellStyle underline-cellstyle) (.setCellValue "Peak 1s power"))
+      (doto (.createCell sub-header-row 2) (.setCellStyle underline-cellstyle) (.setCellValue "Peak occurs at"))
       (doseq [[newrow inputsheet]
               (map vector
                 (iterate #(.createRow sheet (inc (.getRowNum %))) (.createRow sheet (+ 2 rownum)))
-                input-worksheets)]
-        (doto (.createCell newrow 0) (.setCellValue (.getSheetName inputsheet)))
-        (doto (.createCell newrow 1) (.setCellValue "1024w"))
-        (doto (.createCell newrow 2) (.setCellValue "1:24")))
-      (.write output-workbook outstream))))
+                (filter #(or (nil? worksheet-prefix) (.startsWith (.getSheetName %) worksheet-prefix)) input-worksheets))]
+        (let [sheet-results (compute-sheet inputsheet power-start-pos time-start-pos)]
+          (doto (.createCell newrow 0) (.setCellValue (.getSheetName inputsheet)))
+          (doto (.createCell newrow 1) (.setCellValue (:peak-power sheet-results)))
+          (doto (.createCell newrow 2) (.setCellValue (:peak-power-time sheet-results))))))
+    (.write output-workbook outstream)))
 
-(defn- compute-sheet [worksheet]
-  "Calculates the peak 1s power for the given worksheet"
-  (println "Doing sheet" (.getSheetName worksheet)))
+(defn- compute-sheet [worksheet power-start-pos time-start-pos]
+  "Calculates the peak 1s power for the given worksheet.
+   Returns a map containing :peak-power and :peak-power-time."
+  (println "Doing sheet" (.getSheetName worksheet))
+  (if (not= (second power-start-pos) (second time-start-pos))
+    (throw (Exception. "Expecting the power and time columns to start on the same row")))
+  (loop [row (.getRow worksheet (second power-start-pos))]
+    (if row
+      (do
+        (println "Power: " (.getNumericCellValue (.getCell row (first power-start-pos))) ", time: " (.getNumericCellValue (.getCell row (first time-start-pos))))
+        (recur (.getRow worksheet (inc (.getRowNum row)))))))
+  {:peak-power "200w" :peak-power-time "20:01"})
