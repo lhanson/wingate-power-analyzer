@@ -41,22 +41,32 @@
       (doseq [[newrow inputsheet]
               (map vector
                 (iterate #(.createRow sheet (inc (.getRowNum %))) (.createRow sheet (+ 2 rownum)))
-                (filter #(or (nil? worksheet-prefix) (.startsWith (.getSheetName %) worksheet-prefix)) input-worksheets))]
+                (filter #(or (nil? worksheet-prefix) (re-matches (re-pattern (str worksheet-prefix "\\d+")) (.getSheetName %))) input-worksheets))]
         (let [sheet-results (compute-sheet inputsheet power-start-pos time-start-pos)]
           (doto (.createCell newrow 0) (.setCellValue (.getSheetName inputsheet)))
           (doto (.createCell newrow 1) (.setCellValue (:peak-power sheet-results)))
           (doto (.createCell newrow 2) (.setCellValue (:peak-power-time sheet-results))))))
     (.write output-workbook outstream)))
 
+(defn- power-data [worksheet rownum power-colnum time-colnum]
+  "Returns a sequence of [power time] vectors from the data in worksheet"
+  (if-let [row (.getRow worksheet rownum)]
+    (concat (vector (vector (.getNumericCellValue (.getCell row power-colnum))
+                    (.getNumericCellValue (.getCell row time-colnum))))
+            (power-data worksheet (inc rownum) power-colnum time-colnum))))
+
+(defn- peak-1-second-power [data]
+  "Returns the data point from the input representing the highest moving average over 1 second."
+  (let [slices (partition 10 1 data)]
+    ; TODO: Reduce the list of slices to a single 1-second slice with the highest average power, then return the first second of it
+    (first (last slices))))
+
 (defn- compute-sheet [worksheet power-start-pos time-start-pos]
   "Calculates the peak 1s power for the given worksheet.
    Returns a map containing :peak-power and :peak-power-time."
-  (println "Doing sheet" (.getSheetName worksheet))
   (if (not= (second power-start-pos) (second time-start-pos))
     (throw (Exception. "Expecting the power and time columns to start on the same row")))
-  (loop [row (.getRow worksheet (second power-start-pos))]
-    (if row
-      (do
-        (println "Power: " (.getNumericCellValue (.getCell row (first power-start-pos))) ", time: " (.getNumericCellValue (.getCell row (first time-start-pos))))
-        (recur (.getRow worksheet (inc (.getRowNum row)))))))
-  {:peak-power "200w" :peak-power-time "20:01"})
+  (println "Doing sheet" (.getSheetName worksheet))
+  (let [peak (peak-1-second-power (power-data worksheet (second power-start-pos) (first power-start-pos) (first time-start-pos)))]
+    (println "Peak:" peak)
+    {:peak-power (str (first peak) "w") :peak-power-time (str (second peak) "s")}))
