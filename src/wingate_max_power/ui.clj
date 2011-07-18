@@ -1,8 +1,7 @@
 (ns wingate-max-power.ui
   (:import [javax.swing DefaultListModel]
            [javax.swing.event ListDataListener])
-  (:require [clojure.string :as str]
-            [wingate-max-power.processing :as processing])
+  (:require [wingate-max-power.processing :as processing])
   (:use seesaw.core
         seesaw.chooser
         seesaw.mig))
