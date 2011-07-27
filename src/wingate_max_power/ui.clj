@@ -26,11 +26,13 @@
   (button :text "Remove selected files" :enabled? false :listen [:action remove-files-handler]))
 
 (defn- calculate-handler [event]
+  (println "Calculating handler")
   (let [outfile (choose-file :type :save)]
     (alert (str "Output:" outfile " of type " (type outfile) ", exists: " (. outfile exists)))
     (let [files (map #(. selected-files-model getElementAt %) (range (. selected-files-model size)))]
       (doseq [infile files]
         (try
+          ; TODO: powerpos timepos
           (processing/process-file! infile outfile)
           (catch Throwable t (alert (str "Could not process " infile ": " t))))))))
 
@@ -50,14 +52,11 @@
     :constraints ["fill, ins 0"]
     :items [ [(button :text "Choose data files" :listen [:action file-chooser-handler]) "wrap"]
              ["Input files"]
-             [(scrollable selected-files-list) "wrap, growx"]
+             [(scrollable selected-files-list) "growx, wrap"]
              [remove-files-button "wrap"]
              ["Worksheet prefix"]
              [(text) "wrap, growx"]
-             ["Start row"]
-             [(text) "wrap, growx"]
-             ["Start column"]
-             [(text) "wrap, growx"]
+             ["Time start row"] [(text) "growx"] ["column"] [(text) "growx, wrap"]
              [calculate-power-button "wrap"]]))
 
 (defn- update-calculate-button! []

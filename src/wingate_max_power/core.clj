@@ -6,6 +6,6 @@
 (defn -main [& args]
   (if (apply empty? args)
     (ui/show-ui)
-    (apply map processing/process-file args)))
+    (apply map processing/process-file! args)))
 
-;(-main *command-line-args*)
+(-main *command-line-args*)
