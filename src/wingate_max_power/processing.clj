@@ -1,23 +1,38 @@
 (ns wingate-max-power.processing
   (:use [clojure.string :only (trim lower-case)]
-        [clojure.contrib.string :only (as-str)])
+        [clojure.contrib.string :only (as-str)]
+        clojure.contrib.logging [clj-logging-config.log4j]
+        [clojure.contrib.pprint]
+        [clojure.stacktrace]
+        [clojure.contrib.duck-streams :only (append-spit)]
+        )
   (:import [java.io FileInputStream]
            [org.apache.poi.ss.usermodel Cell Font WorkbookFactory]
-           [org.apache.poi.xssf.usermodel XSSFWorkbook]))
+           [org.apache.poi.xssf.usermodel XSSFWorkbook]
+           [org.apache.log4j FileAppender DailyRollingFileAppender SimpleLayout]))
+
+;(set-logger! :appender (DailyRollingFileAppender. (SimpleLayout.) "wingate-max-power.log" "'.'yyyy-MM"))
+(set-logger! :appender (FileAppender. (SimpleLayout.) "wingate-max-power.log"))
 
 (declare compute-sheet)
 
+(defn test-log []
+  (set-logger-additivity! true)
+  (pprint (get-logging-config))
+  (println (impl-get-log ""))
+  (error "YEEEEEEEAH@!!!!"))
+
 (defn process-file! [infile outfile & [{:keys [worksheet-prefix power-start-pos time-start-pos]}]]
   "Computes the max power from the given infile and writes report rows to outfile"
+  (error (str "Processing" infile))
+  (append-spit "duck-streams.log" (str "Processing" infile "\n"))
   (let [input-workbook (WorkbookFactory/create (FileInputStream. infile))
         input-worksheets (for [i (range (.getNumberOfSheets input-workbook))] (.getSheetAt input-workbook i))
         output-workbook (if (.exists outfile) (XSSFWorkbook. (FileInputStream. outfile)) (XSSFWorkbook.))
         sheet (if (> (.getNumberOfSheets output-workbook) 0)
                   (.getSheetAt output-workbook 0)
-                  (.createSheet output-workbook))
+                  (.createSheet output-workbook "Wingate Peak Power"))
         outstream (java.io.FileOutputStream. outfile)]
-
-    (.setSheetName output-workbook 0 "Wingate Peak Power")
 
     (let [rownum (if (= 0 (.getLastRowNum sheet)) 0 (+ 2 (.getLastRowNum sheet)))
           file-header-font (doto (.createFont output-workbook)
@@ -29,6 +44,7 @@
           underline-cellstyle (doto (.createCellStyle output-workbook) (.setFont subheader-font))
           file-header-row (.createRow sheet rownum)
           sub-header-row (.createRow sheet (inc rownum))]
+  (append-spit "duck-streams.log" (str "Going...\n"))
       (.setColumnWidth sheet 0 10000)
       (.setColumnWidth sheet 1 4750)
       (.setColumnWidth sheet 2 4750)
@@ -40,10 +56,12 @@
       (doto (.createCell sub-header-row 0) (.setCellStyle underline-cellstyle) (.setCellValue "Sheet"))
       (doto (.createCell sub-header-row 1) (.setCellStyle underline-cellstyle) (.setCellValue "Peak 1s power (watts)"))
       (doto (.createCell sub-header-row 2) (.setCellStyle underline-cellstyle) (.setCellValue "Peak begins at (seconds)"))
+  (append-spit "duck-streams.log" (str "About to work on the sheets, sheet prefix is" worksheet-prefix))
       (doseq [[newrow inputsheet]
               (map vector
                 (iterate #(.createRow sheet (inc (.getRowNum %))) (.createRow sheet (+ 2 rownum)))
                 (filter #(or (nil? worksheet-prefix) (re-matches (re-pattern (str worksheet-prefix "\\d+")) (.getSheetName %))) input-worksheets))]
+  (append-spit "duck-streams.log" (str "Working on row..." newrow "\n"))
         (let [sheet-results (compute-sheet inputsheet power-start-pos time-start-pos)]
           (doto (.createCell newrow 0) (.setCellValue (.getSheetName inputsheet)))
           (doto (.createCell newrow 1) (.setCellValue (:peak-power sheet-results)))
@@ -118,6 +136,7 @@
   "Calculates the peak 1s power for the given worksheet.
    Returns a map containing :peak-power and :peak-power-time."
   (println "Doing sheet" (.getSheetName worksheet))
+  (append-spit "duck-streams.log" (str "Doing sheet: " (.getSheetName worksheet)"\n"))
   (let [peak (peak-1-second-power (load-power-data worksheet power-start-pos time-start-pos))]
     (println "Peak:" peak)
     {:peak-power (first peak) :peak-power-time (second peak)}))

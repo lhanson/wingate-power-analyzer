@@ -6,3 +6,4 @@ lib
 classes
 build
 /wingate-max-power
+.DS_Store

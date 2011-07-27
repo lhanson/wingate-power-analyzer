@@ -2,7 +2,8 @@
   (:import [javax.swing DefaultListModel]
            [javax.swing.event ListDataListener])
   (:require [wingate-max-power.processing :as processing])
-  (:use seesaw.core
+  (:use [clojure.contrib.string :only (blank? tail)]
+        seesaw.core
         seesaw.chooser
         seesaw.mig))
 
@@ -24,17 +25,25 @@
     (. selected-files-model removeElement selected)))
 (def remove-files-button
   (button :text "Remove selected files" :enabled? false :listen [:action remove-files-handler]))
+(def worksheet-prefix-textbox (text))
 
 (defn- calculate-handler [event]
-  (println "Calculating handler")
-  (let [outfile (choose-file :type :save)]
-    (alert (str "Output:" outfile " of type " (type outfile) ", exists: " (. outfile exists)))
-    (let [files (map #(. selected-files-model getElementAt %) (range (. selected-files-model size)))]
-      (doseq [infile files]
-        (try
-          ; TODO: powerpos timepos
-          (processing/process-file! infile outfile)
-          (catch Throwable t (alert (str "Could not process " infile ": " t))))))))
+  (try
+    (let [outfile-tmp (choose-file :type :save :filters [["Excel files" ["xlsx"]]])
+          outfile (if (not= ".xlsx" (tail 5 (.getName outfile-tmp)))
+                    (java.io.File. (str (.getCanonicalPath outfile-tmp) ".xlsx"))
+                    outfile-tmp)]
+      (alert (str "Output:" outfile " of type " (type outfile) ", exists: " (. outfile exists)))
+      (let [files (map #(. selected-files-model getElementAt %) (range (. selected-files-model size)))
+            worksheet-prefix (.getText worksheet-prefix-textbox)]
+        (alert (str "prefix:" worksheet-prefix))
+        (doseq [infile files]
+          (try
+            (alert (str "worksheet prefix:'" worksheet-prefix"'"))
+            (processing/process-file! infile outfile (if (not (blank? worksheet-prefix)) #{:worksheet-prefix worksheet-prefix}))
+            (catch Throwable t (alert (str "Could not process " infile ": " t)))))))
+    (catch Throwable t (alert (str "Error:" t))))
+  (alert "Done"))
 
 (def calculate-power-button
   (button :text "Calculate Max Power" :enabled? false :listen [:action calculate-handler]))
@@ -55,8 +64,7 @@
              [(scrollable selected-files-list) "growx, wrap"]
              [remove-files-button "wrap"]
              ["Worksheet prefix"]
-             [(text) "wrap, growx"]
-             ["Time start row"] [(text) "growx"] ["column"] [(text) "growx, wrap"]
+             [worksheet-prefix-textbox "wrap, growx"]
              [calculate-power-button "wrap"]]))
 
 (defn- update-calculate-button! []
