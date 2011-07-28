@@ -17,6 +17,11 @@ valid test data, you'll need to specify the prefix of the worksheets that
 should be analyzed.  The program will then look at number-suffixed variations
 of that prefix (e.g., "Datasheet 1", "Datasheet 2", etc.).
 
+The program will look for a cell containing the string "watts" to fid the
+start of the power column, and a cell called "seconds" for the timestamp.
+
+It also currently assumes that the data contains 10 samples per second.
+
 Implementation
 --------------
 It's written in Clojure, using the hilarious and derogatorily-named

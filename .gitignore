@@ -5,5 +5,5 @@ pom.xml
 lib
 classes
 build
-/wingate-max-power
 .DS_Store
+launch4j-win.xml
