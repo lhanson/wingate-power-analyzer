@@ -106,7 +106,8 @@
   (let [power-pos (or power-start-pos (find-start-pos worksheet :watts))
         time-pos (or time-start-pos (find-start-pos worksheet :seconds))]
     (if (or (nil? power-pos) (nil? time-pos))
-      (throw (IllegalArgumentException. "Unable to find power and time columns automatically, please specify")))
+      (throw (IllegalArgumentException. (str "Unable to find power and time columns automatically."
+                                             "\n\nDid you specify the correct worksheet prefix?"))))
     (if (not= (second power-pos) (second time-pos))
       (throw (Exception. "Expecting the power and time columns to start on the same row")))
     (if-let [row (.getRow worksheet (second power-pos))]

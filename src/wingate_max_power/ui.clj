@@ -1,5 +1,6 @@
 (ns wingate-max-power.ui
-  (:import [javax.swing DefaultListModel]
+  (:import [java.awt Desktop]
+           [javax.swing DefaultListModel]
            [javax.swing.event ListDataListener])
   (:require [wingate-max-power.processing :as processing])
   (:use [clojure.contrib.string :only (blank? tail)]
@@ -38,8 +39,8 @@
         (doseq [infile files]
           (try
             (processing/process-file! infile outfile (if (not (blank? worksheet-prefix)) {:worksheet-prefix worksheet-prefix}))
-            (catch Throwable t (alert (str "Could not process " infile ": " t)))))))
-      (alert "Finished!")
+            (catch Throwable t (alert (str "Could not process " infile ": " (.getMessage t)))))))
+      (doto (Desktop/getDesktop) (.open outfile)))
     (catch Throwable t (alert (str "Error:" t)))))
 
 (def calculate-power-button
