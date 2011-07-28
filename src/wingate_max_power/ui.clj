@@ -33,17 +33,14 @@
           outfile (if (not= ".xlsx" (tail 5 (.getName outfile-tmp)))
                     (java.io.File. (str (.getCanonicalPath outfile-tmp) ".xlsx"))
                     outfile-tmp)]
-      (alert (str "Output:" outfile " of type " (type outfile) ", exists: " (. outfile exists)))
       (let [files (map #(. selected-files-model getElementAt %) (range (. selected-files-model size)))
             worksheet-prefix (.getText worksheet-prefix-textbox)]
-        (alert (str "prefix:" worksheet-prefix))
         (doseq [infile files]
           (try
-            (alert (str "worksheet prefix:'" worksheet-prefix"'"))
-            (processing/process-file! infile outfile (if (not (blank? worksheet-prefix)) #{:worksheet-prefix worksheet-prefix}))
+            (processing/process-file! infile outfile (if (not (blank? worksheet-prefix)) {:worksheet-prefix worksheet-prefix}))
             (catch Throwable t (alert (str "Could not process " infile ": " t)))))))
-    (catch Throwable t (alert (str "Error:" t))))
-  (alert "Done"))
+      (alert "Finished!")
+    (catch Throwable t (alert (str "Error:" t)))))
 
 (def calculate-power-button
   (button :text "Calculate Max Power" :enabled? false :listen [:action calculate-handler]))
