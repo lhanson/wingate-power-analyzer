@@ -1,8 +1,8 @@
-(ns wingate-max-power.ui
+(ns wingate-power-analyzer.ui
   (:import [java.awt Desktop]
            [javax.swing DefaultListModel]
            [javax.swing.event ListDataListener])
-  (:require [wingate-max-power.processing :as processing])
+  (:require [wingate-power-analyzer.processing :as processing])
   (:use [clojure.contrib.string :only (blank? tail)]
         seesaw.core
         seesaw.chooser

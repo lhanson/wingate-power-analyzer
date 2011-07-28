@@ -1,4 +1,4 @@
-(defproject wingate-max-power "0.0.1-SNAPSHOT"
+(defproject wingate-power-analyzer "0.0.1-SNAPSHOT"
   :description "A program which computes max 1-second power from Wingate test data"
   :main wingate-max-power.core
   :dependencies [[clojure "1.2.0"]

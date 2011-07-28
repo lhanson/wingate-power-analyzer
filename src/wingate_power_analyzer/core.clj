@@ -1,7 +1,7 @@
-(ns wingate-max-power.core
+(ns wingate-power-analyzer.core
   (:gen-class)
-  (:require [wingate-max-power.ui :as ui]
-            [wingate-max-power.processing :as processing]))
+  (:require [wingate-power-analyzer.ui :as ui]
+            [wingate-power-analyzer.processing :as processing]))
 
 (defn -main [& args]
   (if (apply empty? args)

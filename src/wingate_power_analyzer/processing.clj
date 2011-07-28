@@ -1,4 +1,4 @@
-(ns wingate-max-power.processing
+(ns wingate-power-analyzer.processing
   (:use [clojure.string :only (trim lower-case)]
         [clojure.contrib.string :only (as-str)]
         ;clojure.contrib.logging [clj-logging-config.log4j]
